@@ -14,7 +14,7 @@ npm install
 
 3. **Create a .env file and add the following params:**
 
-```json
+```env
 MAIN_PRIVATE_KEY= *your private key here*
 POLYGONSCAN_API_KEY=*your polygonscan api key here*
 ALCHEMY_API_KEY=*your achemy api key here*
