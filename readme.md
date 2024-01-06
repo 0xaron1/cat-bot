@@ -1,6 +1,4 @@
-**This is simply for testing/research purposes.**
-
-
+This is simply for testing/research purposes.
 
 1. **Clone the repository:**
     ```bash
