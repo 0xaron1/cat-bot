@@ -1,7 +1,10 @@
 const { ethers } = require("ethers");
 require("dotenv").config();
 
-export const provider = new ethers.JsonRpcProvider(`https://polygon-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`);
+//export const provider = new ethers.JsonRpcProvider(`https://polygon-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}`);
+export const provider = new ethers.JsonRpcProvider(
+  `https://polygon-mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`
+);
 
 async function getAbi(addr: string): Promise<any | Error> {
   const contractAddress = addr;
@@ -21,14 +24,13 @@ async function getAbi(addr: string): Promise<any | Error> {
   }
 }
 
-//replace with your token IDs. Add more if you want/need
-const tokens = ["111111", "222222", "333333", "444444", "555555"]
-
+const tokens = ["111111", "222222", "333333", "444444", "555555"];
 
 const PRIVATE_KEY = process.env.MAIN_PRIVATE_KEY;
-const proxy_contract_addr = '0x7573933eB12Fa15D5557b74fDafF845B3BaF0ba2';
-const cat_contract_addr = '0xb1db1005ee017ad1235bA3f7dA4BDc1b83f4f108'
+const proxy_contract_addr = "0x7573933eB12Fa15D5557b74fDafF845B3BaF0ba2";
+const cat_contract_addr = "0xb1db1005ee017ad1235bA3f7dA4BDc1b83f4f108";
 let contract: any;
+let runningErrCount: any = 0;
 
 async function contractInteraction() {
   const signerMain = new ethers.Wallet(PRIVATE_KEY, provider);
@@ -39,37 +41,46 @@ async function contractInteraction() {
 }
 
 async function feedCat(token_id: any) {
-  await contract.feedCat(token_id)
-  .then((tx: any) => {
-    console.log(`Feed cat #${token_id}: `, tx.hash);
-    return tx.hash;
-  })
-  .catch((error: any) => {
-    console.error(`Error feeding cat #${token_id}`);
-    return error;
-  });
+  await contract
+    .feedCat(token_id)
+    .then((tx: any) => {
+      console.log(`Feed cat #${token_id}: `, tx.hash);
+      return tx.hash;
+    })
+    .catch((error: any) => {
+      console.error(`Error feeding cat #${token_id}`);
+      runningErrCount++;
+      return error;
+    });
 }
 
 async function cleanCat(token_id: any) {
-  await contract.cleanCat(token_id)
-  .then((tx: any) => {
-    console.log(`Clean cat #${token_id}: `, tx.hash);
-    return tx.hash;
-  })
-  .catch((error: any) => {
-    console.error(`Error cleaning cat #${token_id}`,);
-    return error;
-  });
+  await contract
+    .cleanCat(token_id)
+    .then((tx: any) => {
+      console.log(`Clean cat #${token_id}: `, tx.hash);
+      return tx.hash;
+    })
+    .catch((error: any) => {
+      console.error(`Error cleaning cat #${token_id}`);
+      runningErrCount++;
+      return error;
+    });
 }
 
 //adjust params to how many cleans/feeds you want
-async function runLoopsWithTimers(tokens: any, feedMax = 7, cleanMax = 4) {
+async function runLoopsWithTimers(tokens: any, feedMax = 9, cleanMax = 6) {
   let feedRestarts = 0;
   let cleanRestarts = 0;
   let cleanRan = false;
 
   async function feedLoop() {
+    if (runningErrCount >= tokens.length - 1) {
+      cleanRestarts = cleanMax;
+      feedRestarts = feedMax;
+    }
     while (feedRestarts < feedMax) {
+      runningErrCount = 0;
       try {
         for (let i = 0; i < tokens.length; i++) {
           await feedCat(tokens[i]);
@@ -80,34 +91,48 @@ async function runLoopsWithTimers(tokens: any, feedMax = 7, cleanMax = 4) {
         console.log(err);
         feedRestarts++;
       } finally {
-        if(!cleanRan) {
-          cleanRan = true
-          cleanLoop()
+        if (!cleanRan) {
+          cleanRan = true;
+          cleanLoop();
         }
-        console.log("Waiting 60 seconds to feed again")
-        setTimeout(feedLoop, 60000);
+        if (runningErrCount < tokens.length - 1) {
+          console.log("Waiting 90 seconds to feed again");
+          setTimeout(feedLoop, 90000);
+        }
+        console.log(
+          `Exiting after ${runningErrCount} errors. You might be done :D`
+        );
       }
     }
   }
 
   async function cleanLoop() {
-    while (cleanRestarts < cleanMax) {
+    if (runningErrCount >= tokens.length - 1) {
+      cleanRestarts = cleanMax;
+      feedRestarts = feedMax;
+    }
+    while (cleanRestarts < cleanMax && runningErrCount < tokens.length) {
+      runningErrCount = 0;
       try {
         for (let i = 0; i < tokens.length; i++) {
           await cleanCat(tokens[i]);
         }
-        cleanRestarts++
+        cleanRestarts++;
         return;
       } catch (err) {
         console.log(err);
         cleanRestarts++;
       } finally {
-        console.log("Waiting 60 seconds to clean again")
-        setTimeout(cleanLoop, 60000);
+        console.log("Waiting 90 seconds to clean again");
+        setTimeout(cleanLoop, 90000);
+      }
+      if (runningErrCount < tokens.length - 1) {
+        console.log("Waiting 90 seconds to feed again");
+        setTimeout(feedLoop, 90000);
       }
     }
   }
   await Promise.all([feedLoop()]);
 }
 
-contractInteraction()
+contractInteraction();
