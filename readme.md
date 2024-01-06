@@ -1,4 +1,4 @@
-**This is simply for testing/research purposes.**
+This is simply for testing/research purposes.
 
 1. **Clone the repository:**
     ```bash
@@ -12,8 +12,8 @@ npm install
 
 3. **Create a .env file and add the following params:**
 
-```json
-MAIN_PRIVATE_KEY= *your private key here*
+```env
+MAIN_PRIVATE_KEY=*your private key here*
 POLYGONSCAN_API_KEY=*your polygonscan api key here*
 ALCHEMY_API_KEY=*your achemy api key here*
 ```
