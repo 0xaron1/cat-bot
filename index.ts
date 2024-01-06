@@ -22,7 +22,8 @@ async function getAbi(addr: string): Promise<any | Error> {
 }
 
 //replace with your token IDs. Add more if you want/need
-const tokens = ["1111111", "22222222", "33333333", "44444444", "55555555", "66666666", "77777777"]
+const tokens = ["111111", "222222", "333333", "444444", "555555"]
+
 
 const PRIVATE_KEY = process.env.MAIN_PRIVATE_KEY;
 const proxy_contract_addr = '0x7573933eB12Fa15D5557b74fDafF845B3BaF0ba2';
@@ -30,9 +31,9 @@ const cat_contract_addr = '0xb1db1005ee017ad1235bA3f7dA4BDc1b83f4f108'
 let contract: any;
 
 async function contractInteraction() {
-  const signer = new ethers.Wallet(PRIVATE_KEY, provider);
+  const signerMain = new ethers.Wallet(PRIVATE_KEY, provider);
   const cat_abi = await getAbi(cat_contract_addr);
-  contract = new ethers.Contract(proxy_contract_addr, cat_abi, signer);
+  contract = new ethers.Contract(proxy_contract_addr, cat_abi, signerMain);
 
   runLoopsWithTimers(tokens);
 }
@@ -61,9 +62,11 @@ async function cleanCat(token_id: any) {
   });
 }
 
-async function runLoopsWithTimers(tokens: any, feedMax = 7, cleanMax = 2) {
+//adjust params to how many cleans/feeds you want
+async function runLoopsWithTimers(tokens: any, feedMax = 7, cleanMax = 4) {
   let feedRestarts = 0;
   let cleanRestarts = 0;
+  let cleanRan = false;
 
   async function feedLoop() {
     while (feedRestarts < feedMax) {
@@ -77,8 +80,12 @@ async function runLoopsWithTimers(tokens: any, feedMax = 7, cleanMax = 2) {
         console.log(err);
         feedRestarts++;
       } finally {
-        console.log("Waiting 30 seconds to feed again")
-        setTimeout(feedLoop, 30000);
+        if(!cleanRan) {
+          cleanRan = true
+          cleanLoop()
+        }
+        console.log("Waiting 60 seconds to feed again")
+        setTimeout(feedLoop, 60000);
       }
     }
   }
@@ -95,12 +102,12 @@ async function runLoopsWithTimers(tokens: any, feedMax = 7, cleanMax = 2) {
         console.log(err);
         cleanRestarts++;
       } finally {
-        console.log("Waiting 30 seconds to clean again")
-        setTimeout(cleanLoop, 30000);
+        console.log("Waiting 60 seconds to clean again")
+        setTimeout(cleanLoop, 60000);
       }
     }
   }
-  await Promise.all([feedLoop(), cleanLoop()]);
+  await Promise.all([feedLoop()]);
 }
 
 contractInteraction()
